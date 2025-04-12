@@ -30,10 +30,7 @@ Built with:
 
 ## 🧩 Project Structure
 
-# 🛢️ Probabilistic Decline Curve Analysis (DCA) Pipeline
-
-**Author:** Alexis Ortega  
-**Project Status:** In development — production-ready Streamlit application for forecasting oil production using probabilistic models.
+project-root/ ├── app.py # Streamlit introduction page (project overview) ├── 1_Pipeline_Run.py # Main pipeline execution page ├── 2_Generate_Report.py # Report generation page ├── src/ │ └── probabilistic_dca/ │ ├── my_dca_models/ # Data processing, models, and plotting │ ├── reporting/ # Report generation scripts │ └── logging_setup.py # Logging configuration ├── images/ │ └── dca_workflow_2.png # Workflow diagram ├── poetry.lock # Poetry lock file ├── pyproject.toml # Poetry dependency definition └── README.md # Project documentation
 
 ---
 
