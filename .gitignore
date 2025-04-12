@@ -1,0 +1,38 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Poetry virtualenv
+.venv/
+
+# VSCode settings
+.vscode/
+
+# Streamlit settings
+.streamlit/
+
+# Env files
+.env
+credentials.yml
+
+# Python cache
+*.log
+*.pot
+*.pyc
+*.pyo
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Pytest cache
+.pytest_cache/
+
+# Poetry lock file (optional to include)
+# poetry.lock
