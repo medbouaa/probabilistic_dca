@@ -231,7 +231,7 @@ def plot_hindcast(test_df, forecast_stats):
 
     ax.plot(x_test, p10,  color='black',  linestyle='--', label='P10')
     ax.plot(x_test, mean, color='green',  linestyle='-',  label='Mean')
-    ax.plot(x_test, p50,  color='orange', line5style='-',  label='P50')
+    ax.plot(x_test, p50,  color='orange', linestyle='-',  label='P50')
     ax.plot(x_test, p90,  color='black',  linestyle='--', label='P90')
 
     ax.set_title("Hindcast vs. Observed Test Data")

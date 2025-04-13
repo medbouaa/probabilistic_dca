@@ -13,8 +13,8 @@ logger = setup_logger(__name__)
 
 # ✅ Caching functions
 @st.cache_data
-def cached_generate_report(pipeline_results):
-    return generate_report(pipeline_results)
+def cached_generate_report(_pipeline_results):
+    return generate_report(_pipeline_results)
 
 # Page config
 st.set_page_config(page_title="Generate Report", layout="wide")
