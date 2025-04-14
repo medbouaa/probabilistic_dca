@@ -1,6 +1,7 @@
 
 # General Settings
 SEED = 123
+TRAIN_PCT = 0.8
 
 # Monte Carlo Sampling
 N_SAMPLES_DEFAULT = 1000

@@ -312,7 +312,7 @@ def boxplot_eur(dataframe):
         })
 
 
-    fig, ax = plt.subplots(figsize=(6.4, 4))
+    fig, ax = plt.subplots(figsize=(5, 3))
     bp = ax.bxp(box_data, showmeans=True, meanline=False, vert=False, patch_artist=True)
 
     # Optional: color each box differently

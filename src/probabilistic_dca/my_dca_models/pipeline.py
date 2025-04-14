@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 # Local imports
-from probabilistic_dca.config import N_INITS_DEFAULT, NUM_TRIALS_DEFAULT, SSE_THRESHOLD_DEFAULT, MIN_IMPROVEMENT_FRAC_DEFAULT, N_SAMPLES_DEFAULT, SEED, FORECAST_YEARS_DEFAULT, DAYS_PER_YEAR
+from probabilistic_dca.config import N_INITS_DEFAULT, NUM_TRIALS_DEFAULT, SSE_THRESHOLD_DEFAULT, MIN_IMPROVEMENT_FRAC_DEFAULT, N_SAMPLES_DEFAULT, SEED, FORECAST_YEARS_DEFAULT, DAYS_PER_YEAR, TRAIN_PCT
 
 from probabilistic_dca.logging_setup import setup_logger
 
@@ -45,7 +45,7 @@ MODEL_CLASSES = {
 # Pipeline Functions
 # -------------------------
 
-def process_data(data_tbl, train_pct=0.8, frac_value=0.4, k_folds=10):
+def process_data(data_tbl, train_pct=TRAIN_PCT, frac_value=0.4, k_folds=10):
     logger.info(f"Starting Process Data")
     last_day, last_cum, x_train_i, models_df = data_processing(
         prod_df=data_tbl,

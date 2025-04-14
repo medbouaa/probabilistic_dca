@@ -56,16 +56,24 @@ def generate_report(pipeline_results):
     add_heading(document, "3. Marginal Posterior Probabilities of Models", level=1)
     add_plot(document, pipeline_results['prob_plot'].figure, "Model Posterior Probabilities")
 
-    # Section 4: Combined Forecast EUR
+    # Section 4: Model-specific EUR
+    add_heading(document, "5. Model-Specific EUR Statistics", level=1)
+    model_eur_df = pd.DataFrame(pipeline_results['model_eur_stats']).T
+    
+    model_eur_df = model_eur_df.applymap(lambda x: f"{int(round(x, 0)):,}")
+    
+    desired_columns = ["p10", "p50", "mean", "p90"]
+    model_eur_df_clean = model_eur_df[desired_columns].reset_index()
+    model_eur_df_clean.rename(columns={'index': 'Model'}, inplace=True)
+    
+    add_dataframe(document, model_eur_df_clean, title="Per Model EUR Summary")
+
+    # Section 5: Combined Forecast EUR
     add_heading(document, "4. Combined EUR Statistics", level=1)
     combined_stats_df = pd.DataFrame([pipeline_results['combined_stats']])
-    add_dataframe(document, combined_stats_df, title="Combined Model EUR Summary")
-
-    # Section 5: Model-specific EUR
-    add_heading(document, "5. Model-Specific EUR Statistics", level=1)
-    model_eur_df = pd.DataFrame(pipeline_results['model_eur_stats']).T.reset_index()
-    model_eur_df.rename(columns={'index': 'Model'}, inplace=True)
-    add_dataframe(document, model_eur_df, title="Per Model EUR Summary")
+    combined_stats_df_clean = combined_stats_df[desired_columns].applymap(lambda x: f"{int(round(x, 0)):,}")
+    
+    add_dataframe(document, combined_stats_df_clean, title="Combined Model EUR Summary")
 
     # Conclusion
     add_heading(document, "6. Conclusion", level=1)

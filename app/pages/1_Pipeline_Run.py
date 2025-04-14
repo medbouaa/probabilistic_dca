@@ -241,11 +241,15 @@ with tabs[3]:
 
     st.subheader("EUR Statistics per Model")
     eur_stats_df = pd.DataFrame(st.session_state.pipeline_results["model_eur_stats"]).T
-    st.dataframe(eur_stats_df)
+    
+    desired_columns = ["p10", "p50", "mean", "p90"]
+    eur_stats_df_clean = eur_stats_df[desired_columns].applymap(lambda x: f"{int(round(x, 0)):,}")
+    st.dataframe(eur_stats_df_clean)
 
     st.subheader("Combined EUR Statistics")
     combined_stats_df = pd.DataFrame([st.session_state.pipeline_results["combined_stats"]])
-    st.dataframe(combined_stats_df)
+    combined_stats_df_clean = combined_stats_df[desired_columns].applymap(lambda x: f"{int(round(x, 0)):,}")
+    st.dataframe(combined_stats_df_clean)
     
     if "model_results" in st.session_state.pipeline_results:
         fit_results_df = prepare_fit_results_for_export(st.session_state.pipeline_results["model_results"])
