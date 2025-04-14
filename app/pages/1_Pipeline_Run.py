@@ -30,13 +30,57 @@ def cached_montecarlo_sampling(models_df, n_samples):
 st.set_page_config(page_title="Pipeline Run", layout="wide")
 st.title("🚀 Pipeline Execution")
 
+# Step 1: Initialize session state
+if "pipeline_results" not in st.session_state:
+    st.session_state.pipeline_results = {}
+
 # Sidebar Inputs
 st.sidebar.header("Configuration")
-#wells_file = st.sidebar.file_uploader("Upload Wells Data CSV", type=["csv"])
+
+# Step 1a: File uploader
 prod_file = st.sidebar.file_uploader("Upload Production Data CSV", type=["csv"])
-time_col = st.sidebar.text_input("Time Column", value="cum_eff_prod_day")
-rate_col = st.sidebar.text_input("Rate Column", value="oil_month_bpd")
-cum_col = st.sidebar.text_input("Cumulative Column", value="cum_oil_bbl")
+
+# Step 1b: Dynamic column selection — after upload
+if prod_file:
+    # Read uploaded data
+    prod_df = cached_load_data(prod_file)
+    columns = prod_df.columns.tolist()
+
+    # Helper function to guess sensible defaults
+    def guess_column(columns, keywords):
+        for col in columns:
+            if any(keyword.lower() in col.lower() for keyword in keywords):
+                return col
+        return columns[0]  # fallback to first column if no match
+
+    # Guess defaults
+    default_time = guess_column(columns, ["date", "time", "day"])
+    default_rate = guess_column(columns, ["rate", "production", "oil_rate", "prod"])
+    default_cum = guess_column(columns, ["cumulative", "cum", "total", "oil"])
+
+    # Sidebar selectboxes for column mapping
+    st.sidebar.markdown("### Column Selection")
+    time_col = st.sidebar.selectbox("🕒 Time Column", options=columns, index=columns.index(default_time))
+    rate_col = st.sidebar.selectbox("📉 Rate Column", options=columns, index=columns.index(default_rate))
+    cum_col = st.sidebar.selectbox("🛢️ Cumulative Column", options=columns, index=columns.index(default_cum))
+
+    # Preview uploaded data
+    st.markdown("### Uploaded Data Preview")
+    st.dataframe(prod_df.head())
+
+else:
+    # If no file, use empty placeholders to avoid errors
+    time_col = rate_col = cum_col = None
+    prod_df = None
+
+# Step 2: Other Sidebar Configurations
+
+lof_n_neighbors = st.sidebar.number_input("LOF-Neighbors", min_value=1, max_value=30, value=16, step=1)
+
+lof_contamination = st.sidebar.number_input("LOF-Contamination", min_value=0.01, max_value=0.10, value=0.05, step=0.01, format="%.2f")
+
+train_pct_slider = st.sidebar.slider("Train Percentage (%)", min_value=50, max_value=95, value=80, step=5)
+train_pcts = train_pct_slider / 100.0  # convert to fraction
 
 model_options = ["arps", "sem", "crm", "lgm"]
 selected_models = st.sidebar.multiselect("Select Models", model_options, default=model_options)
@@ -48,45 +92,38 @@ sse_threshold = st.sidebar.number_input("Threshold Error for Model Fitting", min
 min_improvement_frac = st.sidebar.number_input("Minimum Improvement for Early Stopping", min_value=0.0, value=0.010)
 forecast_years = st.sidebar.number_input("Forecast Horizon (years)", min_value=1, value=15)
 
-# Step 1: Initialize session state
-if "pipeline_results" not in st.session_state:
-    st.session_state.pipeline_results = {}
-
-# Step 2: Setup progress bar
-progress_text = "Pipeline running..."
-progress_bar = st.progress(0, text=progress_text)
-
-status_placeholder = st.empty()
-
-# Step 3: Trigger pipeline
-run_pipeline = st.sidebar.button("🚀 Run Analysis")
-
-# ✅ Add this cleanly below all sidebar controls
+# Step 3: Sidebar utilities
 st.sidebar.markdown("---")
 if st.sidebar.button("🧹 Clear Cache"):
     st.cache_data.clear()
     st.sidebar.success("Cache cleared! Reloading app...")
     st.experimental_rerun()
 
-# Pipeline Execution
+run_pipeline = st.sidebar.button("🚀 Run Analysis")
+
+# Step 4: Progress bar and status
+progress_text = "Pipeline running..."
+progress_bar = st.progress(0, text=progress_text)
+status_placeholder = st.empty()
+
+# Step 5: Trigger pipeline execution
 if run_pipeline and prod_file:
     st.subheader("Pipeline Execution")
     logger.info("Pipeline execution started")
     progress_bar.progress(5, text="Loading data...")
 
-    # Step 1: Load data
-    prod_df = cached_load_data(prod_file)
+    # Step 1: Data is already loaded in prod_df
     st.success("Data loaded!")
     logger.info("Data loaded successfully")
     progress_bar.progress(15, text="Removing outliers...")
 
     # Step 2: Remove outliers
-    clean_data, lof_plot = remove_outliers(prod_df, time_col, rate_col, cum_col)
+    clean_data, lof_plot = remove_outliers(prod_df, time_col, rate_col, cum_col, lof_n_neighbors, lof_contamination)
     logger.info("Outlier removal completed")
     progress_bar.progress(30, text="Processing data...")
 
     # Step 3: Process data
-    last_day, last_cum, x_train_i, models_df = process_data(clean_data)
+    last_day, last_cum, x_train_i, models_df = process_data(clean_data, train_pcts)
     logger.info("Data processing completed")
     progress_bar.progress(45, text="Monte Carlo sampling...")
 
@@ -105,11 +142,9 @@ if run_pipeline and prod_file:
         train_df, selected_models,
         n_inits=n_inits, num_trials=num_trials,
         sse_threshold=sse_threshold, min_improvement_frac=min_improvement_frac,
-        status_placeholder=status_placeholder,  # ✅ New!
+        status_placeholder=status_placeholder,
     )
-    # Prepare per-model Train fit plots
     train_fit_plots = analyze_train_fits(train_df, model_results, selected_models)
-    # Hindcast test plots
     hindcast_plots = hindcast_test(test_df, model_results, selected_models)
     logger.info("Model fitting completed")
     progress_bar.progress(75, text="Calculating model probabilities...")
@@ -122,7 +157,7 @@ if run_pipeline and prod_file:
     # Step 8: Future forecast
     forecast_days = forecast_years * 360
     future_forecasts, model_eur_stats, future_forecast_plots = future_forecast(
-    last_day, last_cum, model_results, selected_models, forecast_days
+        last_day, last_cum, model_results, selected_models, forecast_days
     )
     logger.info("Future forecast completed")
     progress_bar.progress(90, text="Combining multi-model forecast...")
@@ -132,18 +167,15 @@ if run_pipeline and prod_file:
         future_forecasts, prob_matrix, last_cum, selected_models
     )
     logger.info("Multi-model forecast combination completed")
-    
-    progress_bar.progress(95, text="Pipeline completed!")
-    
+    progress_bar.progress(95, text="Generating EUR Boxplot...")
+
     # Step 10: Generate EUR Boxplot
-    fig_eur, df_eur = generate_eur_boxplot(
-        model_eur_stats, combined_stats, selected_models
-    )
+    fig_eur, df_eur = generate_eur_boxplot(model_eur_stats, combined_stats, selected_models)
     logger.info("EUR Boxplot completed")
 
     progress_bar.progress(100, text="Pipeline completed!")
 
-    # Store results
+    # Step 11: Store results
     st.session_state.pipeline_results = {
         "clean_data": clean_data,
         "lof_plot": lof_plot,
@@ -171,17 +203,17 @@ if run_pipeline and prod_file:
 
 elif run_pipeline and not prod_file:
     st.error("Please upload the Production Data CSV file.")
-    st.stop()  # Optional to avoid double rendering
+    st.stop()
     logger.error("Pipeline execution failed: missing production data input file")
 
-# Step 4: Visualization section (tabs)   
+# Step 6: If no pipeline results, stop
 if "pipeline_results" not in st.session_state or not st.session_state.pipeline_results:
     st.warning("Please run the pipeline to see results.")
     st.stop()
-        
+
 st.success("Pipeline results loaded ✅")
 
-# Step 5: Tabs for visualization
+# Step 7: Tabs for visualization
 tabs = st.tabs(["Data Cleaning & QC", "Monte Carlo Sampling", "Model Fitting & Results", "Summary & EUR Results"])
 
 # Tab 1: Data Cleaning & QC
@@ -196,40 +228,28 @@ with tabs[1]:
 
 # Tab 3: Model Fitting & Results
 with tabs[2]:
-    st.subheader("Model Fitting & Forecast Results")
-
     pipeline_results = st.session_state.pipeline_results
+    st.subheader("Model Fitting & Forecast Results")
     selected_model = st.selectbox("Select model to view results", pipeline_results["selected_models"])
-    
-    # ✅ Show P50 parameters
+
     fit_results = pipeline_results["model_results"][selected_model]
     df_params = fit_results["params"]
-    
     p50_params = df_params.median().round(4)
-    
+
     st.subheader(f"P50 Best-Fit Parameters for {selected_model.upper()}")
     st.dataframe(p50_params.to_frame(name="P50 Value"))
 
-    # Train fit plot
-    if "train_fits" not in pipeline_results or selected_model not in pipeline_results["train_fits"]:
-        st.warning("Train fitting plots not yet available.")
-    else:
+    if "train_fits" in pipeline_results and selected_model in pipeline_results["train_fits"]:
         st.subheader("Training Fit")
         st.pyplot(pipeline_results["train_fits"][selected_model], use_container_width=False)
 
-    # Hindcast test plot
-    if "hindcast_plots" not in pipeline_results or selected_model not in pipeline_results["hindcast_plots"]:
-        st.warning("Hindcast plots not yet available.")
-    else:
+    if "hindcast_plots" in pipeline_results and selected_model in pipeline_results["hindcast_plots"]:
         st.subheader("Hindcast Test")
         st.pyplot(pipeline_results["hindcast_plots"][selected_model], use_container_width=False)
 
-    # Future forecast plot
-    if "future_forecast_plots" not in pipeline_results or selected_model not in pipeline_results["future_forecast_plots"]:
-        st.warning("Future forecast plots not yet available.")
-    else:
+    if "future_forecast_plots" in pipeline_results and selected_model in pipeline_results["future_forecast_plots"]:
         st.subheader("Future Forecast - 15 Years")
-        st.pyplot(pipeline_results["future_forecast_plots"][selected_model],use_container_width=False)
+        st.pyplot(pipeline_results["future_forecast_plots"][selected_model], use_container_width=False)
 
 # Tab 4: Summary & EUR Results
 with tabs[3]:
@@ -241,7 +261,6 @@ with tabs[3]:
 
     st.subheader("EUR Statistics per Model")
     eur_stats_df = pd.DataFrame(st.session_state.pipeline_results["model_eur_stats"]).T
-    
     desired_columns = ["p10", "p50", "mean", "p90"]
     eur_stats_df_clean = eur_stats_df[desired_columns].applymap(lambda x: f"{int(round(x, 0)):,}")
     st.dataframe(eur_stats_df_clean)
@@ -250,17 +269,8 @@ with tabs[3]:
     combined_stats_df = pd.DataFrame([st.session_state.pipeline_results["combined_stats"]])
     combined_stats_df_clean = combined_stats_df[desired_columns].applymap(lambda x: f"{int(round(x, 0)):,}")
     st.dataframe(combined_stats_df_clean)
-    
+
     if "model_results" in st.session_state.pipeline_results:
         fit_results_df = prepare_fit_results_for_export(st.session_state.pipeline_results["model_results"])
-        
         csv = fit_results_df.to_csv(index=False).encode('utf-8')
-        
-        st.download_button(
-            label="📥 Download Fit Results as CSV",
-            data=csv,
-            file_name='fit_results.csv',
-            mime='text/csv'
-        )
-
-
+        st.download_button("📥 Download Fit Results as CSV", data=csv, file_name='fit_results.csv', mime='text/csv')

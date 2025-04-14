@@ -14,11 +14,13 @@ from probabilistic_dca.my_dca_models.plotting import plot_crossval_loess
 from probabilistic_dca.my_dca_models.plotting import plot_rolling_std
 from probabilistic_dca.my_dca_models.plotting import plot_sample_sorted_datasets
 
+from probabilistic_dca.config import TRAIN_PCT
+
 ######################################################################
 # data pre-processing
 ######################################################################
 
-def data_processing(prod_df=None, train_pct=0.8, plotting=False, frac_value=0.2):
+def data_processing(prod_df=None, train_pct=TRAIN_PCT,  frac_value=0.4, plotting=False):
       
     if prod_df is None:
         raise ValueError("A valid dataframe is required.")

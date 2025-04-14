@@ -15,9 +15,9 @@ def load_data(production_csv):
     return data_production
 
 
-def remove_outliers(dataframe, time_col, rate_col, cum_col):
+def remove_outliers(dataframe, time_col, rate_col, cum_col, lof_n_neighbors=LOF_N_NEIGHBORS, lof_contamination=LOF_CONTAMINATION):
     logger.info("Removing outliers using LOF")
-    lof = LocalOutlierFactor(n_neighbors=LOF_N_NEIGHBORS, contamination=LOF_CONTAMINATION)
+    lof = LocalOutlierFactor(n_neighbors=lof_n_neighbors, contamination=lof_contamination)
     lof_labels = lof.fit_predict(dataframe[[rate_col]].values)
     dataframe['lof_flag'] = lof_labels
     lof_plot = generate_lof_plot(dataframe, time_col, rate_col)
