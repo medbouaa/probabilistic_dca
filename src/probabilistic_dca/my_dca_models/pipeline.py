@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.neighbors import LocalOutlierFactor
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 from pathlib import Path
 
 # Local imports
@@ -250,7 +251,6 @@ def generate_eur_boxplot(model_eur_stats, combined_eur_stats, selected_models):
 
     fig = boxplot_eur(df_eur)
     return fig, df_eur
-
 
 
 def prepare_fit_results_for_export(model_results):

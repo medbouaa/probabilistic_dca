@@ -69,7 +69,7 @@ if st.sidebar.button("🧹 Reset & Clear Cache"):
     st.experimental_rerun()
 
 # --- Tab layout for stages ---
-tabs = st.tabs(["1. Data Cleaning", "2. Sampling", "3. Fitting", "4. EUR Summary"])
+tabs = st.tabs(["1. Data Cleaning", "2. Monte Carlo Sampling", "3. Model Fitting", "4. Forecast and EUR Summary"])
 
 # ============================
 # STAGE 1: Data Cleaning
@@ -129,11 +129,11 @@ with tabs[0]:
                 "models_df": models_df,
                 "selected_models": selected_models,
             })
-            st.success("✅ Stage 1 completed!")
+            st.success("✅ Stage 1 completed!, Continue with 'Monte Carlo Sampling'")
 
     if st.session_state.pipeline_stage >= 1:
         st.subheader("Outlier Detection (LOF) Plot")
-        st.pyplot(st.session_state.pipeline_results["lof_plot"], use_container_width=True)
+        st.pyplot(st.session_state.pipeline_results["lof_plot"], use_container_width=False)
         st.subheader("Cleaned Data Preview")
         st.dataframe(st.session_state.pipeline_results["clean_data"].head())
 
@@ -162,11 +162,11 @@ with tabs[1]:
                 "test_df": test_df,
             })
             st.session_state.pipeline_stage = 2
-            st.success("✅ Stage 2 completed!")
+            st.success("✅ Stage 2 completed! Continue with 'Model Fitting'")
 
     if st.session_state.pipeline_stage >= 2:
         st.subheader("Sample Distribution")
-        st.pyplot(st.session_state.pipeline_results["sample_fig"], use_container_width=True)
+        st.pyplot(st.session_state.pipeline_results["sample_fig"], use_container_width=False)
         st.subheader("Sample Stats")
         st.dataframe(st.session_state.pipeline_results["sample_stats_df"].head())
         st.write("✅ Train DF Shape:", st.session_state.pipeline_results["train_df"].shape)
@@ -221,11 +221,11 @@ with tabs[2]:
                 "future_forecast_plots": future_forecast_plots,
             })
             st.session_state.pipeline_stage = 3
-            st.success("✅ Stage 3 completed!")
+            st.success("✅ Stage 3 completed! Continue with 'Forecast and EUR Summary'")
 
     if st.session_state.pipeline_stage >= 3:
         st.subheader("Marginal Posterior Probabilities")
-        st.pyplot(st.session_state.pipeline_results["prob_plot"], use_container_width=True)
+        st.pyplot(st.session_state.pipeline_results["prob_plot"], use_container_width=False)
 
         selected_model = st.selectbox("Select Model to View Results", st.session_state.pipeline_results["selected_models"])
 
@@ -247,15 +247,15 @@ with tabs[2]:
 
         if selected_model in st.session_state.pipeline_results["train_fits"]:
             st.subheader("Training Fit")
-            st.pyplot(st.session_state.pipeline_results["train_fits"][selected_model], use_container_width=True)
+            st.pyplot(st.session_state.pipeline_results["train_fits"][selected_model], use_container_width=False)
 
         if selected_model in st.session_state.pipeline_results["hindcast_plots"]:
             st.subheader("Hindcast Test")
-            st.pyplot(st.session_state.pipeline_results["hindcast_plots"][selected_model], use_container_width=True)
+            st.pyplot(st.session_state.pipeline_results["hindcast_plots"][selected_model], use_container_width=False)
 
         if selected_model in st.session_state.pipeline_results["future_forecast_plots"]:
             st.subheader("Future Forecast")
-            st.pyplot(st.session_state.pipeline_results["future_forecast_plots"][selected_model], use_container_width=True)
+            st.pyplot(st.session_state.pipeline_results["future_forecast_plots"][selected_model], use_container_width=False)
 
 # ============================
 # STAGE 4: EUR Calculation & Summary
@@ -315,7 +315,7 @@ with tabs[3]:
         st.dataframe(combined_eur_stats_df_clean)
         
         st.subheader("EUR Boxplot (Multi-Model)")
-        st.pyplot(st.session_state.pipeline_results["eur_plot"], use_container_width=True)
+        st.pyplot(st.session_state.pipeline_results["eur_plot"], use_container_width=False)
 
         fit_results_df = prepare_fit_results_for_export(st.session_state.pipeline_results["model_results"])
         csv = fit_results_df.to_csv(index=False).encode('utf-8')

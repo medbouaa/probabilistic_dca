@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 from statsmodels.nonparametric.smoothers_lowess import lowess
 from matplotlib.ticker import FuncFormatter
 
@@ -297,6 +298,38 @@ def plot_post_prob_models(sorted_list):
     # Return the figure instead of showing
     return fig
 
+# def boxplot_eur(dataframe):
+#     box_data = []
+#     for i, row in dataframe.iterrows():
+#         box_data.append({
+#             'label': row['model_name'],
+#             'whislo': row['y10'],
+#             'q1':     row['y25'],
+#             'med':    row['y50'],
+#             'q3':     row['y75'],
+#             'whishi': row['y90'],
+#             'mean':   row['ymean'],
+#             'fliers': []
+#         })
+
+
+#     fig, ax = plt.subplots(figsize=(5, 3))
+#     bp = ax.bxp(box_data, showmeans=True, meanline=False, vert=False, patch_artist=True)
+
+#     # Optional: color each box differently
+#     colors = ["#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854"]
+#     for patch, color in zip(bp['boxes'], colors):
+#         patch.set_facecolor(color)
+
+#     ax.set_title("Boxplot of Multi-Model Probabilistic EUR")
+#     ax.set_xlabel("EUR, bbl")
+#     ax.set_yticklabels(dataframe["model_name"])
+
+#     plt.gca().invert_yaxis()  # Flip order if desired
+#     plt.grid(True, axis='x', linestyle='--', alpha=0.7)
+#     return fig  
+
+
 def boxplot_eur(dataframe):
     box_data = []
     for i, row in dataframe.iterrows():
@@ -311,21 +344,23 @@ def boxplot_eur(dataframe):
             'fliers': []
         })
 
-
     fig, ax = plt.subplots(figsize=(5, 3))
     bp = ax.bxp(box_data, showmeans=True, meanline=False, vert=False, patch_artist=True)
 
     # Optional: color each box differently
-    colors = ["#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854"]
+    colors = ["#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854"]
     for patch, color in zip(bp['boxes'], colors):
         patch.set_facecolor(color)
 
-    ax.set_title("Boxplot of Multi-Model Probabilistic EUR")
-    ax.set_xlabel("EUR, bbl")
-    ax.set_yticklabels(dataframe["model_name"])
+    # ✅ Smaller fonts
+    ax.set_title("Boxplot of Multi-Model Probabilistic EUR", fontsize=8)
+    ax.set_xlabel("EUR, bbl", fontsize=10)
+    ax.set_yticklabels(dataframe["model_name"], fontsize=9)
+
+    ax.tick_params(axis='both', labelsize=9)
 
     plt.gca().invert_yaxis()  # Flip order if desired
     plt.grid(True, axis='x', linestyle='--', alpha=0.7)
-    return fig    
 
- 
+    return fig
+  

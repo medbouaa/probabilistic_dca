@@ -1183,6 +1183,25 @@ typing = ["typing-extensions ; python_version < \"3.10\""]
 xmp = ["defusedxml"]
 
 [[package]]
+name = "plotly"
+version = "6.0.1"
+description = "An open-source interactive data visualization library for Python"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "plotly-6.0.1-py3-none-any.whl", hash = "sha256:4714db20fea57a435692c548a4eb4fae454f7daddf15f8d8ba7e1045681d7768"},
+    {file = "plotly-6.0.1.tar.gz", hash = "sha256:dd8400229872b6e3c964b099be699f8d00c489a974f2cfccfad5e8240873366b"},
+]
+
+[package.dependencies]
+narwhals = ">=1.15.1"
+packaging = "*"
+
+[package.extras]
+express = ["numpy"]
+
+[[package]]
 name = "protobuf"
 version = "5.29.4"
 description = ""
@@ -1923,4 +1942,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "2a86b6d3e99d601e0a8db503603e52beaff168f46841a86a947aa3ad3d742ba1"
+content-hash = "ee3753b2080258a6b74a0c6b0e63bbc20d1c71106f37f981bc09f7ade62e6170"
