@@ -16,6 +16,7 @@ class LGMModel(BaseDeclineModel):
     """
     def __init__(self, params=None):
         super().__init__(params=params)
+        self.name = "lgm"
         # Some typical guess:
         #self._initial_guess = [300.0, 2500000, 0.6]
         # Bounds: a>0, K>0, 0<n<some range

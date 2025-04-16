@@ -77,22 +77,15 @@ class BaseDeclineModel:
 
     def fit(self, t_data, q_data, var_data=None, sample_id=None):
         """
-        Minimizes self._objective(...) using L-BFGS-B or similar.
+        Minimizes self._objective(...) using optimization methods.
         Fit the model to observed production data.
-        Uses Trust-Region Constrained optimization by default.
-        
+
         Parameters:
         - t_data: Time data
         - q_data: Production data
         - var_data: Optional variance data
-        - sample_id: Optional identifier for status reporting        
+        - sample_id: Optional identifier for status reporting
         """
-        # if self._initial_guess is None or self._bounds is None:
-        #     raise ValueError("Subclass must define _initial_guess and _bounds.")
-
-        # if sample_id is not None:
-        #     print(f"Fitting sample {sample_id}...")
-        
         self.last_solver = None  # ✅ Track solver
 
         if self._initial_guess is None:
@@ -103,37 +96,47 @@ class BaseDeclineModel:
         def objective_wrapper(p):
             return self._objective(p, t_data, q_data, var_data)
 
+        # Determine solver order based on model name
+        model_name = getattr(self, "name", "").lower()
+        if model_name == "arps":
+            primary_solver = 'L-BFGS-B'
+            fallback_solver = 'trust-constr'
+        else:
+            primary_solver = 'trust-constr'
+            fallback_solver = 'L-BFGS-B'
+
         try:
+            # Primary solver
             res = opt.minimize(
                 objective_wrapper,
                 self._initial_guess,
-                method='trust-constr',
-                options={"maxiter": 2000, "verbose": 0},
+                method=primary_solver,
+                options={"maxiter": 2000, "verbose": 0} if primary_solver == 'trust-constr' else {"maxiter": 2000, "maxfun": 10000, "disp": False},
                 bounds=self._bounds
             )
 
             if res.success:
                 self.params = res.x
-                self.last_solver = 'trust-constr'
+                self.last_solver = primary_solver
                 return self.params
 
             # Fallback solver
             res = opt.minimize(
                 objective_wrapper,
                 self._initial_guess,
-                method='L-BFGS-B',
-                options={"maxiter": 2000, "maxfun": 10000, "disp": False},
+                method=fallback_solver,
+                options={"maxiter": 2000, "verbose": 0} if fallback_solver == 'trust-constr' else {"maxiter": 2000, "maxfun": 10000, "disp": False},
                 bounds=self._bounds
             )
 
             if res.success:
                 self.params = res.x
-                self.last_solver = 'L-BFGS-B'
+                self.last_solver = fallback_solver
                 return self.params
 
             print(f"Warning: Fit failed for sample {sample_id}: {res.message}")
             return None
-
+        
         except Exception as e:
             print(f"Exception during fitting sample {sample_id}: {e}")
             return None

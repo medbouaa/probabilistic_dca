@@ -27,3 +27,11 @@ LOF_CONTAMINATION = 0.05
 # Logging Settings
 LOGGING_LEVEL = "INFO"
 LOG_FILE = "dca_pipeline.log"
+
+# Model parameter's names
+MODEL_PARAM_NAMES = {
+    "arps": ["qi", "Di", "b"],
+    "crm": ["dP", "beta", "J_inf", "ctVp"],
+    "sem": ["qi", "Tau", "n"],
+    "lgm": ["a", "K", "n"]
+}

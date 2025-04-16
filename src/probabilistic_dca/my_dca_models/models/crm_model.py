@@ -20,6 +20,7 @@ class CRMModel(BaseDeclineModel):
     """
     def __init__(self, params=None):
         super().__init__(params=params)
+        self.name = "crm"
         # Typical guess
         #self._initial_guess = [2000.0, 0.5, 0.1, 200.0]  # [dP, beta, J_inf, ctVp]
         # Example bounds; you can adapt:

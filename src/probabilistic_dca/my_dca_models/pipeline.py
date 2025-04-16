@@ -163,6 +163,7 @@ def hindcast_test(test_df, model_train_results, selected_models):
 def future_forecast(last_day, last_cum, model_train_results, selected_models, forecast_days=FORECAST_YEARS_DEFAULT*DAYS_PER_YEAR):
     logger.info(f"Starting Future Forecast for {forecast_days} days")
     future_forecasts = {}
+    model_cum_stats = {}
     model_eur_stats = {}
     forecast_plots = {}  # <-- add this
 
@@ -180,6 +181,14 @@ def future_forecast(last_day, last_cum, model_train_results, selected_models, fo
 
         cum_matrix = np.cumsum(fc_matrix, axis=0)
         cum_dist = cum_matrix[-1, :]
+        cum_stats = {
+            "p10": float(np.nanpercentile(cum_dist, 10)),
+            "p25": float(np.nanpercentile(cum_dist, 25)),
+            "p50": float(np.nanpercentile(cum_dist, 50)),
+            "p75": float(np.nanpercentile(cum_dist, 75)),
+            "p90": float(np.nanpercentile(cum_dist, 90)),
+            "mean": float(np.nanmean(cum_dist))
+        }
         eur_stats = {
             "p10": float(np.nanpercentile(cum_dist, 10) + last_cum),
             "p25": float(np.nanpercentile(cum_dist, 25) + last_cum),
@@ -189,10 +198,11 @@ def future_forecast(last_day, last_cum, model_train_results, selected_models, fo
             "mean": float(np.nanmean(cum_dist) + last_cum)
         }
         future_forecasts[model_name] = fc_matrix.T
+        model_cum_stats[model_name] = cum_stats        
         model_eur_stats[model_name] = eur_stats
 
     logger.info("Future Forecast completed")
-    return future_forecasts, model_eur_stats, forecast_plots  # <-- return it
+    return future_forecasts, model_cum_stats, model_eur_stats, forecast_plots  # <-- return it
 
 
 def multi_model_combination(future_forecasts, prob_matrix, last_cum, selected_models):
@@ -203,7 +213,16 @@ def multi_model_combination(future_forecasts, prob_matrix, last_cum, selected_mo
     cum_combined = np.cumsum(combined_forecast, axis=1)
     final_cum_samples = cum_combined[:, -1]
 
-    combined_stats = {
+    combined_cum_stats = {
+        "p10": float(np.nanpercentile(final_cum_samples, 10)),
+        "p25": float(np.nanpercentile(final_cum_samples, 25)),
+        "p50": float(np.nanpercentile(final_cum_samples, 50)),
+        "p75": float(np.nanpercentile(final_cum_samples, 75)),
+        "p90": float(np.nanpercentile(final_cum_samples, 90)),
+        "mean": float(np.nanmean(final_cum_samples))
+    }
+    
+    combined_eur_stats = {
         "p10": float(np.nanpercentile(final_cum_samples, 10) + last_cum),
         "p25": float(np.nanpercentile(final_cum_samples, 25) + last_cum),
         "p50": float(np.nanpercentile(final_cum_samples, 50) + last_cum),
@@ -211,37 +230,62 @@ def multi_model_combination(future_forecasts, prob_matrix, last_cum, selected_mo
         "p90": float(np.nanpercentile(final_cum_samples, 90) + last_cum),
         "mean": float(np.nanmean(final_cum_samples) + last_cum)
     }
+        
     logger.info("Multimodel Combination completed")
-    return combined_forecast, combined_stats
+    return combined_forecast, combined_cum_stats, combined_eur_stats
 
-def generate_eur_boxplot(model_eur_stats, combined_stats, selected_models):
+def generate_eur_boxplot(model_eur_stats, combined_eur_stats, selected_models):
     # Prepare list dynamically from selected models
     model_display_names = [m.upper() for m in selected_models]
 
     df_eur = pd.DataFrame({
         "model_name": model_display_names + ["Combined"],
-        "y10":   [model_eur_stats[m]['p10'] for m in selected_models] + [combined_stats["p10"]],
-        "y25":   [model_eur_stats[m]['p25'] for m in selected_models] + [combined_stats["p25"]],
-        "y50":   [model_eur_stats[m]['p50'] for m in selected_models] + [combined_stats["p50"]],
-        "y75":   [model_eur_stats[m]['p75'] for m in selected_models] + [combined_stats["p75"]],
-        "y90":   [model_eur_stats[m]['p90'] for m in selected_models] + [combined_stats["p90"]],
-        "ymean": [model_eur_stats[m]['mean'] for m in selected_models] + [combined_stats["mean"]]
+        "y10":   [model_eur_stats[m]['p10'] for m in selected_models] + [combined_eur_stats["p10"]],
+        "y25":   [model_eur_stats[m]['p25'] for m in selected_models] + [combined_eur_stats["p25"]],
+        "y50":   [model_eur_stats[m]['p50'] for m in selected_models] + [combined_eur_stats["p50"]],
+        "y75":   [model_eur_stats[m]['p75'] for m in selected_models] + [combined_eur_stats["p75"]],
+        "y90":   [model_eur_stats[m]['p90'] for m in selected_models] + [combined_eur_stats["p90"]],
+        "ymean": [model_eur_stats[m]['mean'] for m in selected_models] + [combined_eur_stats["mean"]]
     })
 
     fig = boxplot_eur(df_eur)
     return fig, df_eur
 
+
+
 def prepare_fit_results_for_export(model_results):
+    """
+    Combine model fit results across all models into a single DataFrame,
+    including model name, sample ID, parameters, solver used, SSE, and early stopping reason.
+    """
     dfs = []
+
     for model_name, result in model_results.items():
         df_params = result["params"].copy()
         df_params["model"] = model_name
+
+        # Use directly stored solver list
+        if "solver_used" in result:
+            df_params["last_solver"] = result["solver_used"]
+        else:
+            df_params["last_solver"] = "unknown"
+
+        # Add SSE values if available
+        if "sse" in result:
+            df_params["sse"] = result["sse"]
+
+        # Add early stop reason if available
+        if "early_stop" in result:
+            df_params["early_stop"] = result["early_stop"]
+
         dfs.append(df_params)
 
-    df_combined = pd.concat(dfs).reset_index().rename(columns={'index': 'sample_name'})
-    df_combined["sample"] = df_combined["sample_name"].str.extract(r"sample_(\d+)").astype(float)
+    df_combined = pd.concat(dfs).reset_index().rename(columns={"index": "sample_name"})
+    df_combined["sample"] = df_combined["sample_name"].str.extract(r"sample_(\\d+)").astype(float)
 
-    cols = ["model", "sample", "sample_name"] + [col for col in df_combined.columns if col not in ["model", "sample", "sample_name"]]
+    cols = ["model", "sample", "sample_name", "last_solver", "sse", "early_stop"] + [
+        col for col in df_combined.columns if col not in ["model", "sample", "sample_name", "last_solver", "sse", "early_stop"]
+    ]
     df_combined = df_combined[cols]
 
     return df_combined

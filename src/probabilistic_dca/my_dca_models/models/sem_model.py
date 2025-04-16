@@ -19,6 +19,7 @@ class SEMModel(BaseDeclineModel):
     """
     def __init__(self, params=None):
         super().__init__(params=params)
+        self.name = "sem"
         # Typical guesses, tune as needed:
         # self._initial_guess = [1000.0, 100.0, 1.0]  
         # Bounds: qi>0, Tau>0, n>0 

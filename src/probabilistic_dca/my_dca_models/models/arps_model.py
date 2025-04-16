@@ -16,6 +16,7 @@ class ArpsModel(BaseDeclineModel):
     """
     def __init__(self, params=None):
         super().__init__(params)
+        self.name = "arps"
         # typical guesses, tune as needed
         #self._initial_guess = [1000.0, 0.02, 0.5, 0.000288]
         self._bounds = [
