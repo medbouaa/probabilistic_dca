@@ -100,7 +100,7 @@ def fit_single_sample(
             if best_sse < sse_threshold:
                 early_stop_reason = "sse_threshold"
                 break
-            elif best_sse < (sse_threshold * 1.2) and improvement < min_improvement_frac:
+            elif best_sse < (sse_threshold * 1.5) and improvement < min_improvement_frac:
                 early_stop_reason = "low_improvement"
                 break
 
