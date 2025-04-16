@@ -31,33 +31,72 @@ if "pipeline_results" not in st.session_state:
 st.sidebar.header("Global Configuration")
 
 # Stage progress tracker
-def render_progress(current_stage):
-    st.sidebar.subheader("📈 Pipeline Progress")
-    stages = ["Stage 1: Data Cleaning", "Stage 2: Sampling", "Stage 3: Model Fitting", "Stage 4: EUR"]
-    for i, stage in enumerate(stages, start=1):
-        if current_stage >= i:
-            st.sidebar.markdown(f"✅ **{stage}**")
-        else:
-            st.sidebar.markdown(f"🚧 {stage}")
+# def render_progress(current_stage):
+#     st.sidebar.subheader("📈 Pipeline Progress")
+#     stages = ["Stage 1: Data Cleaning", "Stage 2: Sampling", "Stage 3: Model Fitting", "Stage 4: EUR"]
+#     for i, stage in enumerate(stages, start=1):
+#         if current_stage >= i:
+#             st.sidebar.markdown(f"✅ **{stage}**")
+#         else:
+#             st.sidebar.markdown(f"🚧 {stage}")
 
-render_progress(st.session_state.pipeline_stage)
+# render_progress(st.session_state.pipeline_stage)
 
 # --- Config parameters ---
 model_options = ["arps", "sem", "crm", "lgm"]
-selected_models = st.sidebar.multiselect("Select Models", model_options, default=model_options)
+selected_models = st.sidebar.multiselect(
+    "Select Models", model_options, default=model_options,
+    help="Choose which decline curve models to include in the analysis."
+)
 
-forecast_years = st.sidebar.number_input("Forecast Horizon (years)", min_value=1, value=15)
-n_samples = st.sidebar.number_input("Monte Carlo Samples", min_value=100, value=1000, step=100)
-n_inits = st.sidebar.number_input("Initializations per Sample", min_value=1, value=10)
-num_trials = st.sidebar.number_input("Trials for Init Parameters", min_value=1, value=5)
-sse_threshold = st.sidebar.number_input("SSE Threshold", min_value=100, value=250)
-min_improvement_frac = st.sidebar.number_input("Minimum Improvement Fraction", min_value=0.0, value=0.01)
-train_pct_slider = st.sidebar.slider("Train Percentage (%)", min_value=50, max_value=95, value=80, step=5)
+forecast_years = st.sidebar.number_input(
+    "Forecast Horizon (years)", min_value=1, value=15,
+    help="Years to project future production for forecasting."
+)
+
+n_samples = st.sidebar.number_input(
+    "Monte Carlo Samples", min_value=100, value=1000, step=100,
+    help="Number of synthetic samples generated to model uncertainty."
+)
+
+n_inits = st.sidebar.number_input(
+    "Initializations per Sample", min_value=1, value=10,
+    help="Number of optimization attempts per sample to avoid local minima."
+)
+
+num_trials = st.sidebar.number_input(
+    "Trials for Init Parameters", min_value=1, value=5,
+    help="Number of trials to generate good initial guesses per fit attempt."
+)
+
+sse_threshold = st.sidebar.number_input(
+    "SSE Threshold", min_value=100, value=250,
+    help="Early stopping threshold for SSE during model fitting."
+)
+
+min_improvement_frac = st.sidebar.number_input(
+    "Minimum Improvement Fraction", min_value=0.0, value=0.01,
+    help="Minimum relative SSE improvement between fitting attempts. Below this, stop early."
+)
+
+train_pct_slider = st.sidebar.slider(
+    "Train Percentage (%)", min_value=50, max_value=95, value=80, step=5,
+    help="Percentage of data to use for model training (rest is used for hindcast testing)."
+)
 train_pcts = train_pct_slider / 100.0
 
+# --- Outlier Detection (LOF) ---
 st.sidebar.header("Outlier Detection (LOF)")
-lof_n_neighbors = st.sidebar.number_input("LOF n_neighbors", min_value=5, value=20, step=1)
-lof_contamination = st.sidebar.slider("LOF contamination", min_value=0.0, max_value=0.5, value=0.05, step=0.01)
+
+lof_n_neighbors = st.sidebar.number_input(
+    "LOF n_neighbors", min_value=5, value=20, step=1,
+    help="Number of neighbors used for Local Outlier Factor (LOF) outlier detection."
+)
+
+lof_contamination = st.sidebar.slider(
+    "LOF contamination", min_value=0.0, max_value=0.5, value=0.05, step=0.01,
+    help="Expected fraction of data considered outliers."
+)
 
 # --- Reset logic ---
 st.sidebar.markdown("---")
