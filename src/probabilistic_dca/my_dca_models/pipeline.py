@@ -4,6 +4,7 @@ from sklearn.neighbors import LocalOutlierFactor
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from pathlib import Path
+import streamlit as st
 
 # Local imports
 from probabilistic_dca.config import N_INITS_DEFAULT, NUM_TRIALS_DEFAULT, SSE_THRESHOLD_DEFAULT, MIN_IMPROVEMENT_FRAC_DEFAULT, N_SAMPLES_DEFAULT, SEED, FORECAST_YEARS_DEFAULT, DAYS_PER_YEAR, TRAIN_PCT
@@ -90,7 +91,10 @@ def fit_models(
 
     for model_name in selected_models:
         if status_placeholder:
-            status_placeholder.info(f"🔧 Fitting **{model_name.upper()}** model...")
+            # status_placeholder.info(f"🔧 Fitting **{model_name.upper()}** model...")
+            with status_placeholder.container():
+                st.markdown(f"🔧 Fitting **{model_name.upper()}** model...")
+                st.markdown("🧠 _Performing Optimization..._")
 
         model_class = MODEL_CLASSES[model_name]
 

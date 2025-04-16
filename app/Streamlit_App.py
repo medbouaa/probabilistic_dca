@@ -14,62 +14,69 @@ st.markdown(
 )
 st.markdown("### 📝 Project Overview")
 
-# Card-like container for both columns
+# Card-like container wrapping both columns
 with st.container():
-    st.markdown("""<div style='border: 1px solid #ddd; border-radius: 12px; padding: 20px; background-color: #f9f9f9;'>""", unsafe_allow_html=True)
     col1, col_spacer, col2 = st.columns([1, 0.1, 1])
 
-    # Left column: Workflow overview image
-with col1:
-    st.markdown("#### 🔄 Workflow Overview")
-    st.markdown("""This diagram outlines the staged execution of the Probabilistic DCA pipeline,
-    from data loading and outlier removal to Monte Carlo sampling, model fitting,
-    and final EUR reporting.
-    """)
-    image = Image.open("images/dca_workflow_2.png")
-    st.image(image, use_container_width=True)
-    st.caption("Hong, Aojie, et al. \"Integrating Model Uncertainty in Probabilistic Decline Curve Analysis for Unconventional Oil Production Forecasting.\" Unconventional Resources Technology Conference, Houston, Texas, 23–25 July 2018. Society of Exploration Geophysicists, American Association of Petroleum Geologists, Society of Petroleum Engineers, 2018.\n")
-
-# Right column: Tabs replacing expanders
-with col2:
-    st.markdown("#### 🧭 Summary")
-    st.markdown("""Use the tabs below to understand the goals, methodology,
-    and models implemented in this app.
-    """)
-
-    summary_tabs = st.tabs(["🎯 Project Goals", "🧪 Methodology Overview", "📚 Models Used in Probabilistic DCA"])
-
-    with summary_tabs[0]:
+    with col1:
         st.markdown("""
-        - Provide a user-friendly interface for probabilistic decline curve analysis.
-        - Enable model comparison using Monte Carlo sampling.
-        - Support multi-model probabilistic forecasting.
-        - Facilitate report generation with summaries, plots, and exportable results.
+            <div style='border: 1px solid #ddd; border-radius: 12px; padding: 20px; background-color: #f9f9f9;'>
+        """, unsafe_allow_html=True)
+
+        st.markdown("#### 🔄 Workflow Overview")
+        st.markdown("""This diagram outlines the staged execution of the Probabilistic DCA pipeline,
+        from data loading and outlier removal to Monte Carlo sampling, model fitting,
+        and final EUR reporting.
+        """)
+        image = Image.open("images/dca_workflow_2.png")
+        st.image(image, use_container_width=False)
+        st.caption("Hong, Aojie, et al. \"Integrating Model Uncertainty in Probabilistic Decline Curve Analysis for Unconventional Oil Production Forecasting.\" Unconventional Resources Technology Conference, Houston, Texas, 23–25 July 2018. Society of Exploration Geophysicists, American Association of Petroleum Geologists, Society of Petroleum Engineers, 2018.\n")
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col2:
+        st.markdown("""
+            <div style='border: 1px solid #ddd; border-radius: 12px; padding: 20px; background-color: #f9f9f9;'>
+        """, unsafe_allow_html=True)
+
+        st.markdown("#### 🧭 Summary")
+        st.markdown("""Use the tabs below to understand the goals, methodology,
+        and models implemented in this app.
         """)
 
-    with summary_tabs[1]:
-        st.markdown("""
-        The application executes a staged workflow:
+        summary_tabs = st.tabs(["🎯 Project Goals", "🧪 Methodology Overview", "📚 Models Used in Probabilistic DCA"])
 
-        1. Load and clean oil production data, removing outliers using LOF.
-        2. Apply rolling statistical models and LOESS smoothing to estimate standard deviations.
-        3. Perform Monte Carlo sampling to generate synthetic production scenarios.
-        4. Fit selected decline curve models using multi-start optimization.
-        5. Analyze training and hindcast fits, forecast future production.
-        6. Estimate EUR per model and combine forecasts probabilistically.
-        """)
+        with summary_tabs[0]:
+            st.markdown("""
+            - Provide a user-friendly interface for probabilistic decline curve analysis.
+            - Enable model comparison using Monte Carlo sampling.
+            - Support multi-model probabilistic forecasting.
+            - Facilitate report generation with summaries, plots, and exportable results.
+            """)
 
-    with summary_tabs[2]:
-        st.markdown("""
-        The following models are implemented:
+        with summary_tabs[1]:
+            st.markdown("""
+            The application executes a staged workflow:
 
-        - **Arps**: Classical exponential/hyperbolic model.
-        - **Stretched Exponential Model (SEM)**: Generalized production decay.
-        - **Capacitance Resistance Model (CRM)**: Physics-based model accounting for reservoir connectivity.
-        - **Logistic Growth Model (LGM)**: Sigmoid-shaped production forecasting.
-        """)
+            1. Load and clean oil production data, removing outliers using LOF.
+            2. Apply rolling statistical models and LOESS smoothing to estimate standard deviations.
+            3. Perform Monte Carlo sampling to generate synthetic production scenarios.
+            4. Fit selected decline curve models using multi-start optimization.
+            5. Analyze training and hindcast fits, forecast future production.
+            6. Estimate EUR per model and combine forecasts probabilistically.
+            """)
 
-    st.markdown("""</div>""", unsafe_allow_html=True)
+        with summary_tabs[2]:
+            st.markdown("""
+            The following models are implemented:
+
+            - **Arps**: Classical exponential/hyperbolic model.
+            - **Stretched Exponential Model (SEM)**: Generalized production decay.
+            - **Capacitance Resistance Model (CRM)**: Physics-based model accounting for reservoir connectivity.
+            - **Logistic Growth Model (LGM)**: Sigmoid-shaped production forecasting.
+            """)
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # ✅ Sidebar navigation + Footer note
 st.sidebar.title("📊 Navigation")
