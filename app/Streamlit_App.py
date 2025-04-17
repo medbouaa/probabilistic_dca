@@ -1,87 +1,118 @@
 import streamlit as st
 from PIL import Image
 
-# Page config
-st.set_page_config(page_title="Streamlit App", layout="wide")
+st.set_page_config(page_title="Probabilistic DCA", layout="wide")
 
-# Title and subtitle
-st.title("📈 Probabilistic Decline Curve Analysis (DCA)")
-st.markdown(
-    """
-    Welcome to the **Probabilistic DCA Workflow** based on SPE-194503-PA!  
-    This application automates probabilistic decline curve analysis for robust forecasting and uncertainty quantification.
-    """
-)
-st.markdown("### 📝 Project Overview")
+# ─────────────── Banner ───────────────
+banner_col1, banner_col2 = st.columns([1, 2])
+with banner_col1:
+    logo = Image.open("images/dca_workflow_2.png")
+    st.image(logo, use_container_width=True)
 
-# Card-like container wrapping both columns
-with st.container():
-    col1, col_spacer, col2 = st.columns([1, 0.1, 1])
+with banner_col2:
+    st.title("📈 Probabilistic Decline Curve Analysis (DCA)")
+    st.markdown(
+        """
+        **Automate** uncertainty‑aware oil‑production forecasting based on SPE‑194503‑PA’s Monte‑Carlo+multi‑model approach.
+        """
+    )
+    st.markdown(
+        """
+        **Key features:**  
+        - 🔄  Staged pipeline: data → sampling → fitting → EUR  
+        - 🧠  Multi‑model (ARPS, SEM, CRM, LGM)  
+        - 📊  Real‑time UI & exportable CSV/PDF  
+        """
+    )
 
-    with col1:
-        st.markdown("""
-            <div style='border: 1px solid #ddd; border-radius: 12px; padding: 20px; background-color: #f9f9f9;'>
-        """, unsafe_allow_html=True)
+    # ───── Tabs under Key Features ─────
+    tabs = st.tabs([
+        "🎯 Project Goals",
+        "🧪 Methodology",
+        "📚 Models",
+        "⚙️ Tech Details"
+    ])
 
-        st.markdown("#### 🔄 Workflow Overview")
-        st.markdown("""This diagram outlines the staged execution of the Probabilistic DCA pipeline,
-        from data loading and outlier removal to Monte Carlo sampling, model fitting,
-        and final EUR reporting.
-        """)
-        image = Image.open("images/dca_workflow_2.png")
-        st.image(image, use_container_width=False)
-        st.caption("Hong, Aojie, et al. \"Integrating Model Uncertainty in Probabilistic Decline Curve Analysis for Unconventional Oil Production Forecasting.\" Unconventional Resources Technology Conference, Houston, Texas, 23–25 July 2018. Society of Exploration Geophysicists, American Association of Petroleum Geologists, Society of Petroleum Engineers, 2018.\n")
+    with tabs[0]:  # Project Goals
+        st.markdown(
+            """
+            - **Integrate model uncertainty** rather than a single “best” model. By treating each model’s goodness‑of‑fit as a probability, you weight forecasts by how likely each model truly represents the underlying physics. 
+            - **Propagate measurement & model uncertainty** into production forecasts via Monte Carlo + Bayesian updating. This yields a single probabilistic forecast that inherently accounts for errors in the data and ambiguity in model choice.  
+            - **Mitigate over/under‑estimations** that arises when relying on one model. The combined multi‑model forecast reduces the risk of “precisely wrong” point estimates by generating a “vaguely right” distribution.  
+            - **Validate on field data**. Show that (a) no single model dominates for all wells, and (b) adding more data tightens uncertainty and improves hindcast performance.  
+            """
+        )
 
-        st.markdown("</div>", unsafe_allow_html=True)
+    with tabs[1]:  # Methodology
+        st.markdown(
+            """
+            1. **Estimate measurement errors**    
+                - Use LOESS (“rlowess”) + rolling‑window SD to derive point‑wise standard deviations (rₖ) for each rate datapoint
+            2. **Monte Carlo sampling**
+               - At each time step, draw N synthetic rate values from 𝒩(q̂, rk), then sort across samples to preserve marginal distributions without bias.
+            3. **History matching via (MLE)**  
+               - For each sampled dataset, fit each candidate model by minimizing weighted SSE, i.e. Lₘₗₑ(x)=∑(q_model−q_data)²/rk².
+            4. **Bayesian model probabilities**   
+               - Compute each model’s posterior probability P(m | data) ∝ exp(–½ Lₘₗₑ) normalized across models.
+            5. **Forecast aggregation**
+               - Weight each model’s forecast by its marginal probability and combine to get a single probabilistic forecast (MM‑P) that integrates both intrinsic and model uncertainty. 
+            6. **Analyze & report**
+               - Extract percentiles (P10/P50/P90), means, and full EUR distributions. Validate via hindcasts on unseen data and apply to field examples.    
+            """
+        )
 
-    with col2:
-        st.markdown("""
-            <div style='border: 1px solid #ddd; border-radius: 12px; padding: 20px; background-color: #f9f9f9;'>
-        """, unsafe_allow_html=True)
+    with tabs[2]:  # Models
+        st.markdown(
+            """
+            **These four models provide a balance of empirical simplicity and physics‑based insight—more can be added as needed.**
+            - **Arps (exp/hyp)**:   
+                qₜ = q₀(1 + b Dᵢ t)^(-1/b), 0≤b<1      
+                Classic, empirical, fast; may mis‑represent multi‑regime fracture flow ​    
+            
+            - **Stretched Exponential (SEM):**  
+                qₜ = q₀ exp[−(t/s)^n]     
+                Captures a distribution of characteristic times; fat‑tailed declines   
+            
+            - **Logistic Growth (LGM):**    
+                qₜ = a K t^(g−1)/(a + t^g)^2     
+                Sigmoidal, directly estimates carrying capacity (EUR) K   
+            - **Pan CRM:**    
+                qₜ = ΔP/(b√t + J₁)·exp[−(2 b√t + J₁ t)/(cₜ Vₚ)]     
+                Physics‑based, handles linear‑to‑boundary flow; skip first 10 days to avoid singularity   
+              
+            """
+        )
 
-        st.markdown("#### 🧭 Summary")
-        st.markdown("""Use the tabs below to understand the goals, methodology,
-        and models implemented in this app.
-        """)
+    with tabs[3]:  # Tech Details (unchanged)
+        st.markdown("_View package structure, config, and extended technical notes below._")
+        with st.expander("Folder structure & config overview", expanded=False):
+            st.code(
+                """
+project_root/
+├─ app/pages/1_Pipeline_Run.py
+├─ app/pages/2_Generate_Report.py
+├─ images/dca_workflow_2.png
+├─ src/probabilistic_dca/
+│  ├─ my_dca_models/
+│  ├─ config.py
+│  └─ logging_setup.py
+└─ tests/
+                """, language="bash"
+            )
+            st.markdown(
+                """
+                - **config.py** holds defaults (n_inits, thresholds…)  
+                - **logging_setup** for structured logs  
+                - **tests/** cover data & fitting modules  
+                """
+            )
 
-        summary_tabs = st.tabs(["🎯 Project Goals", "🧪 Methodology Overview", "📚 Models Used in Probabilistic DCA"])
-
-        with summary_tabs[0]:
-            st.markdown("""
-            - Provide a user-friendly interface for probabilistic decline curve analysis.
-            - Enable model comparison using Monte Carlo sampling.
-            - Support multi-model probabilistic forecasting.
-            - Facilitate report generation with summaries, plots, and exportable results.
-            """)
-
-        with summary_tabs[1]:
-            st.markdown("""
-            The application executes a staged workflow:
-
-            1. Load and clean oil production data, removing outliers using LOF.
-            2. Apply rolling statistical models and LOESS smoothing to estimate standard deviations.
-            3. Perform Monte Carlo sampling to generate synthetic production scenarios.
-            4. Fit selected decline curve models using multi-start optimization.
-            5. Analyze training and hindcast fits, forecast future production.
-            6. Estimate EUR per model and combine forecasts probabilistically.
-            """)
-
-        with summary_tabs[2]:
-            st.markdown("""
-            The following models are implemented:
-
-            - **Arps**: Classical exponential/hyperbolic model.
-            - **Stretched Exponential Model (SEM)**: Generalized production decay.
-            - **Capacitance Resistance Model (CRM)**: Physics-based model accounting for reservoir connectivity.
-            - **Logistic Growth Model (LGM)**: Sigmoid-shaped production forecasting.
-            """)
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-# ✅ Sidebar navigation + Footer note
-st.sidebar.title("📊 Navigation")
-st.sidebar.markdown("➡️ Go to **Pipeline Run** to start analysis.")
-st.sidebar.markdown("➡️ Go to **Generate Report** to create your final report.")
+# ─────────────── Sidebar ───────────────
+st.sidebar.title("🚀 Jump to")
+st.sidebar.markdown("- **Pipeline Run**")  
+st.sidebar.markdown("- **Generate Report**")
 st.sidebar.markdown("---")
 st.sidebar.markdown("By: Alexis Ortega")
-st.sidebar.markdown("[🔗 GitHub Repository](https://github.com/alexort74/probabilistic_dca)")
+st.sidebar.markdown("[🔗 Source on GitHub](https://github.com/alexort74/probabilistic_dca)")
+
+

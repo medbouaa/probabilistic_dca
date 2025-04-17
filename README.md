@@ -34,36 +34,7 @@ project-root/ ├── app.py # Streamlit introduction page (project overview) 
 
 ---
 
-## 🚀 Project Overview
-
-This project implements a complete end-to-end **Probabilistic Decline Curve Analysis (DCA)** workflow, based on the SPE-194503-PA methodology.
-
-The goal is to provide **robust production forecasting** with full uncertainty quantification, allowing you to:
-
-- Perform Monte Carlo simulations of oil production profiles.
-- Fit multiple DCA models: **Arps, CRM, SEM, LGM**.
-- Combine model outputs probabilistically.
-- Generate professional `.docx` reports directly from the Streamlit app.
-- Export visualizations, forecasts, and EUR statistics.
-
-Built with:
-
-- 🐍 Python 3.10.x (managed via **Pyenv**)
-- 📦 Poetry for dependency and environment management
-- 🚀 Streamlit for interactive UI
-- 📊 Matplotlib for visualizations
-- 📄 `python-docx` for automated report generation
-- 🔥 Custom DCA models and parallelized fitting logic
-
----
-
-## 🧩 Project Structure
-
-project-root/ ├── app.py # Streamlit introduction page (project overview) ├── 1_Pipeline_Run.py # Main pipeline execution page ├── 2_Generate_Report.py # Report generation page ├── src/ │ └── probabilistic_dca/ │ ├── my_dca_models/ # Data processing, models, and plotting │ ├── reporting/ # Report generation scripts │ └── logging_setup.py # Logging configuration ├── images/ │ └── dca_workflow_2.png # Workflow diagram ├── poetry.lock # Poetry lock file ├── pyproject.toml # Poetry dependency definition └── README.md # Project documentation
-
----
-
-## ⚙️ Features
+## ⚙️ Features  
 
 - **Multiple Models:** Arps, SEM, CRM, LGM — combine strengths of each.
 - **Monte Carlo Sampling:** Generate thousands of synthetic production profiles.
