@@ -64,7 +64,7 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-synthetic_data.to_csv("src/probabilistic_dca/data/synthetic_pan_crm_data.csv", index=False)
+synthetic_data.to_csv("data/synthetic_pan_crm_data.csv", index=False)
 
 
 

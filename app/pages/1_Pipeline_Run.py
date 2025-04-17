@@ -107,6 +107,17 @@ lof_contamination = st.sidebar.slider(
     help="Expected fraction of data considered outliers."
 )
 
+# --- Total Cores Count ---
+st.sidebar.header("Total Cores Count")
+total_cores = os.cpu_count() or 1
+n_jobs = st.sidebar.number_input(
+    "Parallel jobs",
+    min_value=1,
+    max_value=total_cores,
+    value=total_cores,
+    help="How many worker processes to spawn"
+)
+
 # --- Reset logic ---
 st.sidebar.markdown("---")
 if st.sidebar.button("🧹 Reset & Clear Cache"):
@@ -242,9 +253,9 @@ with tabs[2]:
             bar_placeholder    = st.empty()
             
             # inside your `if stage3_button:` block, before calling fit_models(...)
-            n_jobs = -1   # -1 means “use all available CPU cores”
+            #n_jobs = -1   # -1 means “use all available CPU cores”
             # if user or default gave -1, use every core
-            effective_n_jobs = os.cpu_count() if n_jobs < 1 else n_jobs
+            #effective_n_jobs = os.cpu_count() if n_jobs < 1 else n_jobs
             
             # call the new fit_models (it will create its own progress bar)
             model_results = fit_models(
@@ -252,7 +263,7 @@ with tabs[2]:
                 st.session_state.pipeline_results["selected_models"],
                 n_inits=n_inits,
                 num_trials=num_trials,
-                n_jobs=effective_n_jobs,             # <-- use the remapped value
+                n_jobs=n_jobs,             # <-- use the remapped value
                 sse_threshold=sse_threshold,
                 min_improvement_frac=min_improvement_frac,
                 status_placeholder=status_placeholder,  # ✅ Pass it in!
