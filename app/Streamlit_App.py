@@ -30,7 +30,7 @@ with banner_col2:
         "🎯 Project Goals",
         "🧪 Methodology",
         "📚 Models",
-        "⚙️ Tech Details"
+        "⚙️ Implementation Details"
     ])
 
     with tabs[0]:  # Project Goals
