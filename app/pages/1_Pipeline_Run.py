@@ -3,6 +3,7 @@ import pandas as pd
 import pathlib
 import sys
 import os
+import warnings
 
 # Fix import paths
 sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent / 'src'))
@@ -14,6 +15,13 @@ from probabilistic_dca.my_dca_models.pipeline import (
 )
 from probabilistic_dca.logging_setup import setup_logger
 from probabilistic_dca.config import MODEL_PARAM_NAMES
+
+# Suppress the Streamlit “missing ScriptRunContext” warnings
+warnings.filterwarnings(
+    "ignore",
+    message="Thread 'MainThread': missing ScriptRunContext.*",
+    module="streamlit.runtime.scriptrunner_utils.script_run_context"
+)
 
 # Logger
 logger = setup_logger(__name__)
