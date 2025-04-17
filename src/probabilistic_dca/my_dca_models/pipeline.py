@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 from sklearn.neighbors import LocalOutlierFactor
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 from pathlib import Path
 import streamlit as st
 import os
