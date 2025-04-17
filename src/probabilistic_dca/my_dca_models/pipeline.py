@@ -5,11 +5,14 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from pathlib import Path
 import streamlit as st
+import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # Local imports
 from probabilistic_dca.config import N_INITS_DEFAULT, NUM_TRIALS_DEFAULT, SSE_THRESHOLD_DEFAULT, MIN_IMPROVEMENT_FRAC_DEFAULT, N_SAMPLES_DEFAULT, SEED, FORECAST_YEARS_DEFAULT, DAYS_PER_YEAR, TRAIN_PCT
 
 from probabilistic_dca.logging_setup import setup_logger
+from probabilistic_dca.my_dca_models.fitting import fit_single_sample
 
 logger = setup_logger(__name__)
 
@@ -71,6 +74,145 @@ def montecarlo_sampling(models_df, n_samples=N_SAMPLES_DEFAULT):
     logger.info("Monte Carlo sampling completed")
     return sample_sorted_df, sample_stats_df, sample_fig
 
+# fit_models --- parallel
+# def fit_models(
+#     train_df,
+#     selected_models,
+#     seed=SEED,
+#     n_inits=N_INITS_DEFAULT,
+#     num_trials=NUM_TRIALS_DEFAULT,
+#     n_jobs=-1,
+#     sse_threshold=SSE_THRESHOLD_DEFAULT,
+#     min_improvement_frac=MIN_IMPROVEMENT_FRAC_DEFAULT,
+#     status_placeholder=None
+# ):
+#     """
+#     Fits each selected model in parallel with adaptive multi-start, returning a dict of results.
+#     """    
+#     logger.info(f"Starting Model Fitting with {n_inits} initializations and {num_trials} trials")
+#     model_train_results = {}
+
+#     for model_name in selected_models:
+#         if status_placeholder:
+#             # status_placeholder.info(f"🔧 Fitting **{model_name.upper()}** model...")
+#             with status_placeholder.container() as ctr:
+#                 ctr.markdown(f"🔧 Fitting **{model_name.upper()}**…")
+#                 prog = ctr.progress(0)
+
+#         model_class = MODEL_CLASSES[model_name]
+
+#         fit_results = fit_model_for_samples_mstart_para(
+#             model_class=model_class,
+#             sample_df=train_df,
+#             seed=seed,
+#             n_inits=n_inits,
+#             num_trials=num_trials,
+#             use_shared_p50_init=False,
+#             n_jobs=n_jobs,
+#             sse_threshold=sse_threshold,
+#             min_improvement_frac=min_improvement_frac,
+#             progress_bar=prog,                # pass the Streamlit progress bar
+#             total_samples=train_df.shape[1],  # number of sample_* columns
+#         )
+
+#         model_train_results[model_name] = fit_results
+
+#     if status_placeholder:
+#         status_placeholder.success("✅ Model fitting completed!")
+
+#     logger.info("Model Fitting completed")
+#     return model_train_results
+
+# fit_models --- ThreadPoolExecutor
+# from concurrent.futures import ThreadPoolExecutor, as_completed
+# from probabilistic_dca.my_dca_models.fitting import fit_single_sample
+
+# def fit_models(
+#     train_df,
+#     selected_models,
+#     seed=SEED,
+#     n_inits=N_INITS_DEFAULT,
+#     num_trials=NUM_TRIALS_DEFAULT,
+#     n_jobs=-1,
+#     sse_threshold=SSE_THRESHOLD_DEFAULT,
+#     min_improvement_frac=MIN_IMPROVEMENT_FRAC_DEFAULT,
+#     status_placeholder=None,
+#     progress_bar=None,    # new
+# ):
+#     """
+#     Fits each selected model in parallel (ThreadPoolExecutor), updating
+#     a Streamlit progress bar in the main thread.
+#     """
+#     logger.info(f"Starting Model Fitting with {n_inits} initializations and {num_trials} trials")
+#     model_train_results = {}
+
+#     for model_name in selected_models:
+#         # 1) Build UI
+#         if status_placeholder:
+#             status_placeholder.markdown(f"🔧 Fitting **{model_name.upper()}**…")
+#         # reuse the *other* slot for the bar:
+#         prog = progress_bar if progress_bar is not None else st.empty().progress(0)
+
+#         # 2) Prepare sample columns
+#         sample_cols = [c for c in train_df.columns if c.startswith("sample_")]
+#         total = len(sample_cols)
+
+#         # 3) Launch ThreadPoolExecutor
+#         results = []
+#         with ThreadPoolExecutor(max_workers=n_jobs) as exe:
+#             futures = {
+#                 exe.submit(
+#                     fit_single_sample,
+#                     idx,
+#                     col,
+#                     MODEL_CLASSES[model_name],
+#                     train_df,
+#                     seed,
+#                     n_inits,
+#                     num_trials,
+#                     False,           # use_shared_p50_init
+#                     None,            # shared_initial_guess
+#                     sse_threshold,
+#                     min_improvement_frac,
+#                 ): col
+#                 for idx, col in enumerate(sample_cols)
+#             }
+
+#             # 4) As each future completes, collect its result and update the bar
+#             for i, fut in enumerate(as_completed(futures), start=1):
+#                 col, params, sse, pred, solver, stop_reason = fut.result()
+#                 results.append((col, params, sse, pred, solver, stop_reason))
+#                 if prog:
+#                     prog.progress(i / total)
+
+#         # 5) Unpack into your usual dict
+#         param_list, sse_list, predictions, solver_list, early_stop_list = [], [], {}, [], []
+#         for col, params, sse, pred, solver, stop_reason in results:
+#             param_list.append(params)
+#             sse_list.append(sse)
+#             predictions[col] = pred
+#             solver_list.append(solver)
+#             early_stop_list.append(stop_reason)
+
+#         df_params = np.array(param_list)
+#         # turn into DataFrame with index=sample_cols
+#         import pandas as pd
+#         df_params = pd.DataFrame(param_list, index=sample_cols)
+
+#         model_train_results[model_name] = {
+#             "params": df_params,
+#             "sse": np.array(sse_list),
+#             "predictions": predictions,
+#             "solver_used": solver_list,
+#             "early_stop": early_stop_list,
+#         }
+
+#     if status_placeholder:
+#         status_placeholder.success("✅ Model fitting completed!")
+
+#     logger.info("Model Fitting completed")
+#     return model_train_results
+
 
 def fit_models(
     train_df,
@@ -81,43 +223,79 @@ def fit_models(
     n_jobs=-1,
     sse_threshold=SSE_THRESHOLD_DEFAULT,
     min_improvement_frac=MIN_IMPROVEMENT_FRAC_DEFAULT,
-    status_placeholder=None
+    status_placeholder=None,  # text slot
+    progress_bar=None         # bar slot
 ):
     """
-    Fits each selected model in parallel with adaptive multi-start, returning a dict of results.
-    """    
-    logger.info(f"Starting Model Fitting with {n_inits} initializations and {num_trials} trials")
-    model_train_results = {}
+    Fits each selected model in parallel (ProcessPoolExecutor),
+    updating two Streamlit slots (text + bar) in the main thread.
+    """
+    logger.info(f"Starting Model Fitting with {n_inits} inits, {num_trials} trials")
+    results_by_model = {}
+
+    # remap -1 → all cores
+    max_workers = os.cpu_count() if n_jobs < 1 else n_jobs
 
     for model_name in selected_models:
+        # 1) update text
         if status_placeholder:
-            # status_placeholder.info(f"🔧 Fitting **{model_name.upper()}** model...")
-            with status_placeholder.container():
-                st.markdown(f"🔧 Fitting **{model_name.upper()}** model...")
-                st.markdown("🧠 _Performing Optimization..._")
+            status_placeholder.markdown(f"🔧 Fitting **{model_name.upper()}**…")
 
-        model_class = MODEL_CLASSES[model_name]
+        # 2) grid of sample columns
+        sample_cols = [c for c in train_df.columns if c.startswith("sample_")]
+        total = len(sample_cols)
 
-        fit_results = fit_model_for_samples_mstart_para(
-            model_class=model_class,
-            sample_df=train_df,
-            seed=seed,
-            n_inits=n_inits,
-            num_trials=num_trials,
-            use_shared_p50_init=False,
-            n_jobs=n_jobs,
-            sse_threshold=sse_threshold,
-            min_improvement_frac=min_improvement_frac
-        )
+        # 3) spin up a process pool
+        futures = []
+        with ProcessPoolExecutor(max_workers=max_workers) as exe:
+            for idx, col in enumerate(sample_cols):
+                futures.append(
+                    exe.submit(
+                        fit_single_sample,
+                        idx, col,
+                        MODEL_CLASSES[model_name],
+                        train_df,
+                        seed,
+                        n_inits,
+                        num_trials,
+                        False,    # use_shared_p50_init
+                        None,     # shared_initial_guess
+                        sse_threshold,
+                        min_improvement_frac
+                    )
+                )
 
-        model_train_results[model_name] = fit_results
+            # 4) collect & update bar in main thread
+            completed = []
+            for i, fut in enumerate(as_completed(futures), start=1):
+                col, params, sse, pred, solver, stop = fut.result()
+                completed.append((col, params, sse, pred, solver, stop))
+                if progress_bar:
+                    progress_bar.progress(i / total)
+
+        # 5) unpack to your usual dict
+        param_list, sse_list, preds, solvers, stops = [], [], {}, [], []
+        for col, params, sse, pred, solver, stop in completed:
+            param_list.append(params)
+            sse_list.append(sse)
+            preds[col] = pred
+            solvers.append(solver)
+            stops.append(stop)
+
+        df_params = pd.DataFrame(param_list, index=sample_cols)
+        results_by_model[model_name] = {
+            "params":      df_params,
+            "sse":         np.array(sse_list),
+            "predictions": preds,
+            "solver_used": solvers,
+            "early_stop":  stops,
+        }
 
     if status_placeholder:
         status_placeholder.success("✅ Model fitting completed!")
 
     logger.info("Model Fitting completed")
-    return model_train_results
-
+    return results_by_model
 
 def analyze_train_fits(train_df, model_train_results, selected_models):
     train_plots = {}

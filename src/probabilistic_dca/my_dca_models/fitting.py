@@ -137,10 +137,6 @@ def fit_model_for_samples_mstart_para(
     """
     Parallel version: Fits a decline model to each Monte Carlo sample using multiple initializations.
     """
-    from joblib import Parallel, delayed
-    import numpy as np
-    import pandas as pd
-
     sample_cols = [c for c in sample_df.columns if c.startswith('sample_')]
     rng = np.random.default_rng(seed)
 
@@ -202,6 +198,105 @@ def fit_model_for_samples_mstart_para(
         'solver_used': solver_list,
         'early_stop': early_stop_list
     }
+    
+
+# ######################################################################
+# # “fit_model_for_samples_mstart_para2”
+# ######################################################################
+
+# @timing_decorator
+# def fit_model_for_samples_mstart_para2(
+#     model_class,
+#     sample_df,
+#     seed=None,
+#     n_inits=10,
+#     num_trials=5,
+#     use_shared_p50_init=False,
+#     n_jobs=-1,
+#     sse_threshold=250.0,
+#     min_improvement_frac=0.01,
+#     progress_bar=None,      # NEW: Streamlit progress bar
+#     total_samples=None      # NEW: total number of samples
+# ):
+#     """
+#     Parallel version: Fits a decline model to each Monte Carlo sample using multiple initializations,
+#     updating a Streamlit progress bar after each sample finishes.
+#     """
+#     # Identify sample columns
+#     sample_cols = [c for c in sample_df.columns if c.startswith("sample_")]
+#     M = len(sample_cols)
+
+#     # RNG for shared init if requested
+#     rng = np.random.default_rng(seed)
+
+#     # Optional shared P50 initial guess
+#     shared_initial_guess = None
+#     if use_shared_p50_init:
+#         sample_values = sample_df[sample_cols].values
+#         p50_curve = np.nanpercentile(sample_values, 50, axis=1)
+#         model_tmp = model_class()
+#         shared_initial_guess = model_tmp.initialize_parameters(
+#             t_data=sample_df["x"].values,
+#             q_data=p50_curve,
+#             var_data=sample_df["sigma2"].values,
+#             seed=seed,
+#             num_trials=num_trials,
+#         )
+
+#     # Figure out how many samples we're processing
+#     if total_samples is None:
+#         total_samples = M
+
+#     # Define a wrapper that fits one sample and updates the progress bar
+#     def _fit_and_report(i, col):
+#         out = fit_single_sample(
+#             sample_idx=i,
+#             col=col,
+#             model_class=model_class,
+#             sample_df=sample_df,
+#             seed=seed,
+#             n_inits=n_inits,
+#             num_trials=num_trials,
+#             use_shared_p50_init=use_shared_p50_init,
+#             shared_initial_guess=shared_initial_guess,
+#             sse_threshold=sse_threshold,
+#             min_improvement_frac=min_improvement_frac,
+#         )
+#         if progress_bar is not None:
+#             progress_bar.progress((i + 1) / total_samples)
+#         return out
+
+#     # Use threading backend so Streamlit UI calls are allowed
+#     parallel = Parallel(n_jobs=n_jobs, backend="threading", verbose=0)
+#     results = parallel(
+#         delayed(_fit_and_report)(i, col)
+#         for i, col in enumerate(sample_cols)
+#     )
+
+#     # Collect results
+#     param_list, sse_list, predictions, solver_list, early_stop_list = [], [], {}, [], []
+#     for col, params, sse, pred, solver, stop_reason in results:
+#         param_list.append(params)
+#         sse_list.append(sse)
+#         predictions[col] = pred
+#         solver_list.append(solver)
+#         early_stop_list.append(stop_reason)
+
+#     df_params = pd.DataFrame(param_list, index=sample_cols)
+
+#     # Optionally print a solver‐success summary
+#     solver_counts = pd.Series(solver_list).value_counts(normalize=True) * 100
+#     print("\n✅ Solver Success Summary:")
+#     for solver, pct in solver_counts.items():
+#         print(f"   {solver}: {pct:.1f}%")
+
+#     return {
+#         "params": df_params,
+#         "sse": np.array(sse_list),
+#         "predictions": predictions,
+#         "solver_used": solver_list,
+#         "early_stop": early_stop_list,
+#     }
 
 ######################################################################
 # “gather_sse_matrix”

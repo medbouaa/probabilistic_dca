@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import pathlib
 import sys
+import os
 
 # Fix import paths
 sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent / 'src'))
@@ -228,16 +229,26 @@ with tabs[2]:
             last_day = st.session_state.pipeline_results["last_day"]
             last_cum = st.session_state.pipeline_results["last_cum"]
 
-            status_placeholder = st.empty()  # ✅ Create placeholder for updates
-
+            # placeholder for all status messages
+            status_placeholder = st.empty()
+            bar_placeholder    = st.empty()
+            
+            # inside your `if stage3_button:` block, before calling fit_models(...)
+            n_jobs = -1   # -1 means “use all available CPU cores”
+            # if user or default gave -1, use every core
+            effective_n_jobs = os.cpu_count() if n_jobs < 1 else n_jobs
+            
+            # call the new fit_models (it will create its own progress bar)
             model_results = fit_models(
                 train_df,
                 st.session_state.pipeline_results["selected_models"],
                 n_inits=n_inits,
                 num_trials=num_trials,
+                n_jobs=effective_n_jobs,             # <-- use the remapped value
                 sse_threshold=sse_threshold,
                 min_improvement_frac=min_improvement_frac,
                 status_placeholder=status_placeholder,  # ✅ Pass it in!
+                progress_bar=bar_placeholder,   # NEW
             )
             train_fit_plots = analyze_train_fits(train_df, model_results, st.session_state.pipeline_results["selected_models"])
             hindcast_plots = hindcast_test(test_df, model_results, st.session_state.pipeline_results["selected_models"])
