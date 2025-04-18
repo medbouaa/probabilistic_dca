@@ -34,5 +34,8 @@ Thumbs.db
 # Pytest cache
 .pytest_cache/
 
+# Model results
+.pkl
+
 # Poetry lock file (optional to include)
 # poetry.lock
