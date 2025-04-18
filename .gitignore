@@ -36,7 +36,6 @@ Thumbs.db
 
 # Model results
 *.pkl
-!data/last_pipeline_run.pkl
 
 
 # Poetry lock file (optional to include)
