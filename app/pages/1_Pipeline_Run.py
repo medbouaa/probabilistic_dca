@@ -126,11 +126,21 @@ lof_contamination = st.sidebar.slider(
 )
 
 # Parallel jobs config
+# figure out how many CPUs *we actually have* under our cgroup
+try:
+    # in Python 3.3+ on Linux, this honors cgroup CPU limits
+    total_cores = len(os.sched_getaffinity(0))
+except AttributeError:
+    # fallback if sched_getaffinity isn't available
+    total_cores = os.cpu_count() or 1
+
 st.sidebar.header("Parallelism")
-total_cores = os.cpu_count() or 1
 n_jobs = st.sidebar.number_input(
-    "Parallel jobs (n_jobs)", min_value=1, max_value=total_cores,
-    value=total_cores, help="Number of worker processes to spawn."
+    "Parallel jobs (n_jobs)",
+    min_value=1,
+    max_value=total_cores,
+    value=total_cores,
+    help="Number of worker processes to spawn (capped at your container’s CPU quota)."
 )
 
 # Reset logic
