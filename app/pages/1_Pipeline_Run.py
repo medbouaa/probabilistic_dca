@@ -128,54 +128,62 @@ lof_contamination = st.sidebar.slider(
 
 # Parallel jobs config
 # figure out how many CPUs *we actually have* under our cgroup
-def real_container_cpus():
+def get_container_cpu_quota():
     """
-    Return a tuple (raw_cpuset, count_of_cpus) by inspecting the cgroup cpuset file.
-    Falls back to os.cpu_count() if we can’t parse anything.
+    Return (quota, period, cores) on Linux/cgroup2,
+    otherwise fall back to (None, None, os.cpu_count()).
     """
-    paths = [
-        "/sys/fs/cgroup/cpuset/cpuset.cpus",   # cgroup v1
-        "/sys/fs/cgroup/cpuset.cpus",          # some cgroup v2 mounts
-    ]
-    for p in paths:
+    # Only try the cgroup path on POSIX systems
+    if os.name == "posix" and os.path.exists("/proc/self/mountinfo"):
         try:
-            s = open(p).read().strip()
-            if not s:
-                continue
-            total = 0
-            # e.g. “0-1,3,5-6”
-            for part in s.split(","):
-                part = part.strip()
-                if "-" in part:
-                    a, b = part.split("-", 1)
-                    total += int(b) - int(a) + 1
-                elif part.isdigit():
-                    total += 1
-                else:
-                    # unknown token, skip it
-                    continue
-            if total > 0:
-                return s, total
+            # 1) find cgroup2 mount point
+            cgroup2_mount = None
+            with open("/proc/self/mountinfo", "r") as mi:
+                for line in mi:
+                    if " - cgroup2 " in line:
+                        cgroup2_mount = line.split()[4]
+                        break
+
+            # 2) find our cgroup path
+            if cgroup2_mount and os.path.exists("/proc/self/cgroup"):
+                rel_path = None
+                with open("/proc/self/cgroup", "r") as cg:
+                    for line in cg:
+                        if line.startswith("0::"):
+                            rel_path = line.strip().split("0::")[-1]
+                            break
+
+                # 3) read cpu.max
+                if rel_path:
+                    cpu_max = os.path.join(cgroup2_mount, rel_path.lstrip("/"), "cpu.max")
+                    if os.path.exists(cpu_max):
+                        with open(cpu_max) as f:
+                            quota, period = f.read().split()
+                        if quota != "max":
+                            quota_i, period_i = int(quota), int(period)
+                            cores = max(1, quota_i // period_i)
+                            return quota_i, period_i, cores
         except Exception:
-            # file not readable or parse error—try next
-            continue
+            # any failure, we’ll fall back below
+            pass
 
-    # fallback
-    return None, (os.cpu_count() or 1)
+    # fallback on Windows or any error
+    return None, None, (os.cpu_count() or 1)
 
-# use it in your sidebar:
-label, count = real_container_cpus()
-if label:
-    st.sidebar.write(f"⚙️  Container cpuset: `{label}` → {count} cores")
+
+# usage:
+quota, period, total_cores = get_container_cpu_quota()
+if quota:
+    st.sidebar.write(f"⚙️ CPU quota: {quota}µs per {period}µs → {total_cores} cores")
 else:
-    st.sidebar.write(f"⚙️  Using host CPU count: {count} cores")
+    st.sidebar.write(f"⚙️ Host CPU count (fallback): {total_cores} cores")
 
 n_jobs = st.sidebar.number_input(
     "Parallel jobs (n_jobs)",
     min_value=1,
-    max_value=count,
-    value=count,
-    help=f"Spawn up to {count} worker processes (based on container cpuset)."
+    max_value=total_cores,
+    value=total_cores,
+    help=f"Spawn up to {total_cores} worker processes (capped by detected CPU quota)."
 )
 
 # Reset logic
