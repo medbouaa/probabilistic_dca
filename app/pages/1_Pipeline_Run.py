@@ -127,20 +127,43 @@ lof_contamination = st.sidebar.slider(
 
 # Parallel jobs config
 # figure out how many CPUs *we actually have* under our cgroup
-try:
-    # in Python 3.3+ on Linux, this honors cgroup CPU limits
-    total_cores = len(os.sched_getaffinity(0))
-except AttributeError:
-    # fallback if sched_getaffinity isn't available
-    total_cores = os.cpu_count() or 1
+def get_container_cpu_count():
+    """
+    Return the number of CPUs the current process is allowed to use under cgroups.
+    Falls back to os.cpu_count() if cgroup info is unavailable.
+    """
+    # Try cgroup v2 interface
+    try:
+        with open('/sys/fs/cgroup/cpu.max') as f:
+            quota, period = f.read().split()
+            if quota != 'max':  # if quota is 'max', it’s unlimited
+                return max(1, int(int(quota) / int(period)))
+    except Exception:
+        pass
 
+    # Try legacy cgroup v1 interface
+    try:
+        with open('/sys/fs/cgroup/cpu/cpu.cfs_quota_us') as f:
+            quota = int(f.read())
+        with open('/sys/fs/cgroup/cpu/cpu.cfs_period_us') as f:
+            period = int(f.read())
+        if quota > 0:
+            return max(1, int(quota / period))
+    except Exception:
+        pass
+
+    # Fallback to host CPU count
+    return os.cpu_count() or 1
+
+# then in your sidebar config:
+total_cores = get_container_cpu_count()
 st.sidebar.header("Parallelism")
 n_jobs = st.sidebar.number_input(
     "Parallel jobs (n_jobs)",
     min_value=1,
     max_value=total_cores,
     value=total_cores,
-    help="Number of worker processes to spawn (capped at your container’s CPU quota)."
+    help=f"How many worker processes to spawn (container sees {total_cores} CPU)."
 )
 
 # Reset logic
