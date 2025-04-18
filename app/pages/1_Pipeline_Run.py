@@ -128,62 +128,14 @@ lof_contamination = st.sidebar.slider(
 
 # Parallel jobs config
 # figure out how many CPUs *we actually have* under our cgroup
-def get_container_cpu_quota():
-    """
-    Return (quota, period, cores) on Linux/cgroup2,
-    otherwise fall back to (None, None, os.cpu_count()).
-    """
-    # Only try the cgroup path on POSIX systems
-    if os.name == "posix" and os.path.exists("/proc/self/mountinfo"):
-        try:
-            # 1) find cgroup2 mount point
-            cgroup2_mount = None
-            with open("/proc/self/mountinfo", "r") as mi:
-                for line in mi:
-                    if " - cgroup2 " in line:
-                        cgroup2_mount = line.split()[4]
-                        break
-
-            # 2) find our cgroup path
-            if cgroup2_mount and os.path.exists("/proc/self/cgroup"):
-                rel_path = None
-                with open("/proc/self/cgroup", "r") as cg:
-                    for line in cg:
-                        if line.startswith("0::"):
-                            rel_path = line.strip().split("0::")[-1]
-                            break
-
-                # 3) read cpu.max
-                if rel_path:
-                    cpu_max = os.path.join(cgroup2_mount, rel_path.lstrip("/"), "cpu.max")
-                    if os.path.exists(cpu_max):
-                        with open(cpu_max) as f:
-                            quota, period = f.read().split()
-                        if quota != "max":
-                            quota_i, period_i = int(quota), int(period)
-                            cores = max(1, quota_i // period_i)
-                            return quota_i, period_i, cores
-        except Exception:
-            # any failure, we’ll fall back below
-            pass
-
-    # fallback on Windows or any error
-    return None, None, (os.cpu_count() or 1)
-
-
-# usage:
-quota, period, total_cores = get_container_cpu_quota()
-if quota:
-    st.sidebar.write(f"⚙️ CPU quota: {quota}µs per {period}µs → {total_cores} cores")
-else:
-    st.sidebar.write(f"⚙️ Host CPU count (fallback): {total_cores} cores")
-
+default = int(st.secrets.get("settings", {}).get("max_cores", os.cpu_count() or 1))
+st.sidebar.header("Parallelism")
 n_jobs = st.sidebar.number_input(
     "Parallel jobs (n_jobs)",
     min_value=1,
-    max_value=total_cores,
-    value=total_cores,
-    help=f"Spawn up to {total_cores} worker processes (capped by detected CPU quota)."
+    max_value=default,
+    value=default,
+    help=f"Max worker processes ({default})"
 )
 
 # Reset logic
