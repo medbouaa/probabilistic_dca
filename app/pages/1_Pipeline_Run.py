@@ -55,7 +55,16 @@ if st.sidebar.button("🔄 Reload previous run"):
             st.session_state.pipeline_results = pickle.load(f)
         st.session_state.pipeline_stage = 4
         st.sidebar.success("✅ Reloaded previous run!")
-        st.experimental_rerun()
+
+        # trigger a rerun in whichever API is available
+        try:
+            st.experimental_rerun()
+        except AttributeError:
+            try:
+                st.script_request_rerun()
+            except AttributeError:
+                # no rerun API available: user can manually refresh
+                pass
     else:
         st.sidebar.error("No saved run found.")
 
