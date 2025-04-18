@@ -3,6 +3,7 @@ import pandas as pd
 import pathlib
 import sys
 import os
+import re
 import warnings
 import pickle
 
@@ -128,35 +129,53 @@ lof_contamination = st.sidebar.slider(
 # Parallel jobs config
 # figure out how many CPUs *we actually have* under our cgroup
 def real_container_cpus():
+    """
+    Return a tuple (raw_cpuset, count_of_cpus) by inspecting the cgroup cpuset file.
+    Falls back to os.cpu_count() if we can’t parse anything.
+    """
     paths = [
-        "/sys/fs/cgroup/cpuset/cpuset.cpus",        # cgroup v1 cpuset
-        "/sys/fs/cgroup/cpuset.cpus",              # cgroup v2 unified
+        "/sys/fs/cgroup/cpuset/cpuset.cpus",   # cgroup v1
+        "/sys/fs/cgroup/cpuset.cpus",          # some cgroup v2 mounts
     ]
     for p in paths:
         try:
             s = open(p).read().strip()
-            return s, sum(
-                (int(r.split('-')[-1]) - int(r.split('-')[0]) + 1)
-                for r in s.split(',')
-            )
-        except FileNotFoundError:
+            if not s:
+                continue
+            total = 0
+            # e.g. “0-1,3,5-6”
+            for part in s.split(","):
+                part = part.strip()
+                if "-" in part:
+                    a, b = part.split("-", 1)
+                    total += int(b) - int(a) + 1
+                elif part.isdigit():
+                    total += 1
+                else:
+                    # unknown token, skip it
+                    continue
+            if total > 0:
+                return s, total
+        except Exception:
+            # file not readable or parse error—try next
             continue
-    return None, None
 
+    # fallback
+    return None, (os.cpu_count() or 1)
+
+# use it in your sidebar:
 label, count = real_container_cpus()
 if label:
-    st.sidebar.write(f"⚙️ Container cpuset: `{label}` → {count} cores")
+    st.sidebar.write(f"⚙️  Container cpuset: `{label}` → {count} cores")
 else:
-    st.sidebar.write("⚙️ Could not detect cpuset; fallback to os.cpu_count()")
+    st.sidebar.write(f"⚙️  Using host CPU count: {count} cores")
 
-# then cap n_jobs to `count` (if found)
-max_cores = count or os.cpu_count() or 1
 n_jobs = st.sidebar.number_input(
     "Parallel jobs (n_jobs)",
     min_value=1,
-    max_value=max_cores,
-    value=max_cores,
-    help=f"Spawn up to {max_cores} worker processes (based on container cpuset)."
+    max_value=count,
+    value=count,
+    help=f"Spawn up to {count} worker processes (based on container cpuset)."
 )
 
 # Reset logic
